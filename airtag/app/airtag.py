@@ -86,7 +86,7 @@ class Airtag:
 
         print(" Playing sound!")
 
-p1 = Airtag(8001, 0, 0)
+p1 = Airtag(8001, 12.1, 100.12)
 
 
 
