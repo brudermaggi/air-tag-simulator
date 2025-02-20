@@ -1,0 +1,30 @@
+services:
+  server:
+    build: ./server/
+    restart: always
+    #command: ["fastapi", "run", "app/main.py", "--port", "8000"]
+    depends_on:
+      - mysql
+    ports:
+      - 8000:8000
+
+  mysql:
+    build: ./database/
+    restart: always
+    environment:
+      MYSQL_DATABASE: airtags
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - 3306:3306
+
+
+  
+
+  airtag:
+    build: ./airtag/
+    #command: ["fastapi", "run", "app/main.py", "--port", "8001"]
+    depends_on:
+      - server
+      - mysql
+    ports:
+      - 8001:8001

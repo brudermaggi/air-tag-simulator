@@ -31,7 +31,7 @@ class Airtag:
         if not self.check_server_connection():
             print(" Cannot register")
             return False
-        response = requests.post(f"{FASTAPI_SERVER}/ws", json={"id": self.id})
+        response = requests.post(f"{FASTAPI_SERVER}/register", json={"id": self.id})
         if response.status_code == 200:
             print("Successfully registered")
             return True
