@@ -42,8 +42,25 @@ async def register(id: int):
 
 
 
+#==========================================Tone===========================================================
+@app.get("/tone")
+def play_tone(id:int):
+    requests.post(f"http://localhost:{id}/tone")
+    print("Playing sound on Airtag")
 
 
+
+
+
+
+
+
+
+
+
+
+
+#==========================================StatusCheck for AirTag=========================================
 @app.post("/health")
 async def health():
     return 200   
