@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.params import Body
 import requests
 import uvicorn
 from pydantic import BaseModel
@@ -7,6 +8,7 @@ import mysql.connector
 
 app = FastAPI()
 table_name = "tags"
+
 
 
 #==========================================Database======================================================
@@ -24,7 +26,8 @@ conn = mysql.connector.connect(
 
 #==========================================Registration==================================================
 @app.post("/register")
-async def register(id: int):
+async def register(reg: dict = Body(...)):
+    id = reg["id"]
     cursor = conn.cursor()
     query = f"INSERT INTO airtags.tags (id) VALUES ({id})"
 
@@ -34,7 +37,7 @@ async def register(id: int):
         print(f"Inserted into database {query}")
         conn.commit()
         print("Committed")
-        conn.close()
+        
 
         return 200
     else:
@@ -42,11 +45,34 @@ async def register(id: int):
 
 
 
+#=========================================================================================================
+@app.post("/coords")
+async def getCoords(coords : dict = Body(...)):
+    lon = coords["lon"]
+    lat = coords["lat"]
+    cursor = conn.cursor()
+    query = f"INSERT INTO airtags.tags (lon, lat) VALUES ({lon}, {lat})"
+
+    if isinstance(lon, float) and isinstance(lat, float):
+        print("Inserting into database")
+        cursor.execute(query)
+        conn.commit()
+        
+        print("Committed Coordinates")
+        return 200
+    else:
+        return 400
+
+
+
+
 #==========================================Tone===========================================================
 @app.get("/tone")
-def play_tone(id:int):
-    requests.post(f"http://localhost:{id}/tone")
-    print("Playing sound on Airtag")
+def play_sound():
+    url = "http://airtag:8001/tone"  # Adjust if hosted elsewhere
+    payload = {"action": "play_sound"}  # JSON payload
+    response = requests.post(url, json=payload)  # Sending request
+    print(response.json())  # Print server response
 
 
 
@@ -62,5 +88,10 @@ def play_tone(id:int):
 
 #==========================================StatusCheck for AirTag=========================================
 @app.post("/health")
-async def health():
+def health():
     return 200   
+
+@app.post("/disconnect")
+def disconnect():
+    conn.close()
+    return {"MySQL":"Disconnected"}

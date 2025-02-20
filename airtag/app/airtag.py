@@ -5,7 +5,7 @@ from pydantic import BaseModel
 import time
 
 
-FASTAPI_SERVER = "http://localhost:8000"
+FASTAPI_SERVER = "http://server:8000"
 
 
 app = FastAPI()
@@ -17,14 +17,22 @@ class Airtag:
         self.long = long
         self.lat = lat
 
+
+
+
     def check_server_connection(self):
+        response = requests.post(f"{FASTAPI_SERVER}/health")
+        print(response.status_code)
         try:
-            response = requests.get(f"{FASTAPI_SERVER}/health", timeout=3)
             if response.status_code == 200:
+                print(" FastAPI server is reachable.")
                 return True
         except requests.exceptions.RequestException:
             print(" FastAPI server is unreachable. Retrying in 5 seconds...")
         return False
+
+
+
 
     def register(self):
 
@@ -32,12 +40,16 @@ class Airtag:
             print(" Cannot register")
             return False
         response = requests.post(f"{FASTAPI_SERVER}/register", json={"id": self.id})
+        print(response)
         if response.status_code == 200:
             print("Successfully registered")
             return True
         else:
             print(" Error during registration")
             return False
+
+
+
 
     def sendCoords(self):
         if not self.register():
@@ -46,7 +58,7 @@ class Airtag:
 
 
         for i in range(4):
-            data = {"long": self.long, "lat": self.lat}
+            data = {"lon": self.long, "lat": self.lat}
 
             try:
 
@@ -67,16 +79,30 @@ class Airtag:
 
             time.sleep(10)
 
+
+
+
     def playSound(self):
 
         print(" Playing sound!")
 
-p1 = Airtag(2, 24, 50)
+p1 = Airtag(8001, 0, 0)
 
 
 
 class Command(BaseModel):
     action: str
+
+
+
+@app.get("/start")
+def start():
+    p1.sendCoords()
+    return {"status": "Started"}
+
+
+
+
 
 
 @app.post("/tone")
