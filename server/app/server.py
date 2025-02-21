@@ -27,20 +27,26 @@ conn = mysql.connector.connect(
 #==========================================Registration==================================================
 @app.post("/register")
 async def register(reg: dict = Body(...)):
+    conn.connect()
+
     id = reg["id"]
     cursor = conn.cursor()
     query = f"INSERT INTO airtags.tags (id) VALUES ({id})"
 
     if isinstance(id, int):
-        print("Inserting into database")
-        cursor.execute(query)
-        print(f"Inserted into database {query}")
-        conn.commit()
-        print("Committed")
+        try:
+            cursor.execute(query)
+            conn.commit()
+            conn.close()
+            return 200
+        except mysql.connector.errors.IntegrityError:
+            conn.close()
+            print("ID already registered, proceed with coords")
+            conn.close()
+            return 200
         
-
-        return 200
     else:
+        conn.close()
         return 400
 
 
@@ -48,6 +54,7 @@ async def register(reg: dict = Body(...)):
 #=========================================================================================================
 @app.post("/coords")
 async def getCoords(coords : dict = Body(...)):
+    conn.connect()
     id = coords["id"]
     lon = coords["lon"]
     lat = coords["lat"]
@@ -60,8 +67,10 @@ async def getCoords(coords : dict = Body(...)):
         conn.commit()
         
         print("Committed Coordinates")
+        conn.close()
         return 200
     else:
+        conn.close()
         return 400
 
 
