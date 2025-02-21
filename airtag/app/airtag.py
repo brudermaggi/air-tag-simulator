@@ -55,29 +55,19 @@ class Airtag:
         if not self.register():
             print("Registration failed. Stopping process.")
             return
+        
+        data = {"id":self.id, "lon": self.long, "lat": self.lat}
 
+        response = requests.post(f"{FASTAPI_SERVER}/coords", json=data)
 
-        for i in range(4):
-            data = {"lon": self.long, "lat": self.lat}
-
-            try:
-
-                response = requests.post(f"{FASTAPI_SERVER}/coords", json=data)
-
-                if response.status_code == 200:
-                    print(f"Sent coordinates {i + 1}/4 successfully.")
-                else:
-                    print(f"Failed to send coordinates {i + 1}/4. Status Code: {response.status_code}")
-
-            except Exception as e:
-                print(f"Error occurred while sending coordinates {i + 1}/4: {e}")
-
-
-            time.sleep(10)
-            print(f"Sent coordinates {i + 1}/4")
-
-
-            time.sleep(10)
+        if response.status_code == 200:
+            print(f"Sent coordinates successfully.")
+            
+        else:
+            print(f"Failed to send coordinates. Status Code: {response.status_code}")
+            print("Trying again in 5 seconds...")
+            time.sleep(5)
+            self.sendCoords()
 
 
 

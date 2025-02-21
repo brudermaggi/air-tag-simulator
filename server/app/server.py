@@ -48,10 +48,11 @@ async def register(reg: dict = Body(...)):
 #=========================================================================================================
 @app.post("/coords")
 async def getCoords(coords : dict = Body(...)):
+    id = coords["id"]
     lon = coords["lon"]
     lat = coords["lat"]
     cursor = conn.cursor()
-    query = f"INSERT INTO airtags.tags (lon, lat) VALUES ({lon}, {lat})"
+    query = f"UPDATE {table_name} SET lon = {lon}, lat = {lat} WHERE id = {id};"
 
     if isinstance(lon, float) and isinstance(lat, float):
         print("Inserting into database")
