@@ -1,9 +1,6 @@
 from fastapi import FastAPI
 from fastapi.params import Body
 import requests
-import uvicorn
-from pydantic import BaseModel
-import Airtag
 import mysql.connector
 
 app = FastAPI()
@@ -51,7 +48,7 @@ async def register(reg: dict = Body(...)):
 
 
 
-#=========================================================================================================
+#============================================Coords======================================================
 @app.post("/coords")
 async def getCoords(coords : dict = Body(...)):
     conn.connect()
@@ -84,23 +81,15 @@ def play_sound():
     response = requests.post(url, json=payload)  # Sending request
     print(response.json())  # Print server response
 
-
-
-
-
-
-
-
-
-
-
-
-
 #==========================================StatusCheck for AirTag=========================================
 @app.post("/health")
 def health():
     return 200   
 
+
+
+
+#==========================================Debug functions================================================
 @app.post("/disconnect")
 def disconnect():
     conn.close()

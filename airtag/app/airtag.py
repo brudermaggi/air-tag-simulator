@@ -89,14 +89,14 @@ class Airtag:
 
     def playSound(self):
 
-        print(" Playing sound!")
+        print("Playing sound!")
 
 # ====================================== Coord generation ===================================
 def generate_random_longitude(): 
-    return round(random.uniform(5.8663, 15.0419), 6)  # West-East range
+    return round(random.uniform(47.2701, 55.0584), 6)  # West-East range
 
 def generate_random_latitude():
-    return round(random.uniform(47.2701, 55.0584), 6)  # North-South range
+    return round(random.uniform(5.8663, 15.0419), 6)  # North-South range
 
 
 # ====================================== Creating Airtag ====================================
