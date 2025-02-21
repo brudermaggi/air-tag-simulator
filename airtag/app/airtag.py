@@ -4,7 +4,8 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import time
 import random
-
+import docker
+import os
 
 FASTAPI_SERVER = "http://server:8000"
 
@@ -107,16 +108,26 @@ p1 = Airtag(8001,generate_random_longitude(), generate_random_latitude())
 class Command(BaseModel):
     action: str
 
-
+# ====================================== fast api ============================================
 
 @app.get("/start")
 def start():
     p1.sendCoords()
     return {"status": "Started"}
 
+@app.post("/stop")
+def stop_container():
+    client = docker.from_env()
+    container_id = os.environ.get("HOSTNAME")  
 
-
-
+    try:
+        container = client.containers.get(container_id)
+        print(f"Stopping container: {container_id}")
+        container.stop()
+        return {"status": "Container stopped successfully."}
+    except Exception as e:
+        print(f"Error stopping container: {e}")
+        return {"status": f"Error: {e}"}
 
 
 @app.post("/tone")
@@ -126,7 +137,7 @@ async def execute_command(command: Command):
         return {"status": "Sound played"}
     return {"status": "Unknown command"}
 
-
+# ====================== main runenr ===================================
 if __name__ == "__main__":
     p1.sendCoords()
     uvicorn.run(app, host="0.0.0.0", port=8001)
