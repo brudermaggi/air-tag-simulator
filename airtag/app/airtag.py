@@ -11,14 +11,14 @@ FASTAPI_SERVER = "http://server:8000"
 
 app = FastAPI()
 
-
+# ============================ Class Airtag =======================================
 class Airtag:
     def __init__(self, id: int, long: float, lat: float):
         self.id = id
         self.long = long
         self.lat = lat
 
-
+# ============================ Checking server connection ==========================
 
     def check_server_connection(self):
         try:
@@ -31,7 +31,7 @@ class Airtag:
             print("FastAPI server is unreachable. Retrying in 5 seconds...")
             time.sleep(5)
         return False
-
+# ========================== Register if connection is 👌 ===========================
     def register(self):   
         while not self.check_server_connection():
             print("Server is down. Cannot register. Retrying...")
@@ -50,7 +50,7 @@ class Airtag:
             print("Retrying registration in 5 seconds...")
             time.sleep(5)
 
-
+# ======================= send coords =====================================================
     def sendCoords(self):
         self.register()
 
@@ -60,7 +60,11 @@ class Airtag:
             if not self.check_server_connection():
                 print("Server is unreachable. Waiting for connection...")
                 time.sleep(5)
-                continue  # Retry server connection
+                continue  
+
+            
+            self.long = generate_random_longitude()
+            self.lat = generate_random_latitude()
 
             data = {"id": self.id, "lon": self.long, "lat": self.lat}
 
@@ -68,7 +72,7 @@ class Airtag:
                 response = requests.post(f"{FASTAPI_SERVER}/coords", json=data)
 
                 if response.status_code == 200:
-                    print("Sent coordinates successfully.")
+                    print(f"Sent new coordinates successfully: ({self.long}, {self.lat})")
                 else:
                     print(f"Failed to send coordinates. Status Code: {response.status_code}")
                     print("Retrying in 5 seconds...")
@@ -81,15 +85,13 @@ class Airtag:
 
             time.sleep(20)
 
-
-
-
+# ===================================== play sound =========================================
 
     def playSound(self):
 
         print(" Playing sound!")
 
-
+# ====================================== Coord generation ===================================
 def generate_random_longitude(): 
     return round(random.uniform(5.8663, 15.0419), 6)  # West-East range
 
@@ -97,7 +99,7 @@ def generate_random_latitude():
     return round(random.uniform(47.2701, 55.0584), 6)  # North-South range
 
 
-
+# ====================================== Creating Airtag ====================================
 p1 = Airtag(8001,generate_random_longitude(), generate_random_latitude())
 
 
