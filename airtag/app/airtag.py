@@ -3,6 +3,7 @@ import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 import time
+import random
 
 
 FASTAPI_SERVER = "http://server:8000"
@@ -19,55 +20,67 @@ class Airtag:
 
 
 
-
     def check_server_connection(self):
-        response = requests.post(f"{FASTAPI_SERVER}/health")
-        print(response.status_code)
         try:
+            response = requests.post(f"{FASTAPI_SERVER}/health")
+            print(response.status_code)
             if response.status_code == 200:
-                print(" FastAPI server is reachable.")
+                print("FastAPI server is reachable.")
                 return True
         except requests.exceptions.RequestException:
-            print(" FastAPI server is unreachable. Retrying in 5 seconds...")
+            print("FastAPI server is unreachable. Retrying in 5 seconds...")
+            time.sleep(5)
         return False
 
+    def register(self):   
+        while not self.check_server_connection():
+            print("Server is down. Cannot register. Retrying...")
+            time.sleep(5)
+        while True:
+            try:
+                response = requests.post(f"{FASTAPI_SERVER}/register", json={"id": self.id})
+                if response.status_code == 200:
+                    print("Successfully registered.")
+                    return True
+                else:
+                    print(f"Error during registration: {response.status_code}")
+            except requests.exceptions.RequestException as e:
+                print(f"Registration request failed: {e}")
 
-
-
-    def register(self):
-
-        if not self.check_server_connection():
-            print(" Cannot register")
-            return False
-        response = requests.post(f"{FASTAPI_SERVER}/register", json={"id": self.id})
-        print(response)
-        if response.status_code == 200:
-            print("Successfully registered")
-            return True
-        else:
-            print(" Error during registration")
-            return False
-
-
+            print("Retrying registration in 5 seconds...")
+            time.sleep(5)
 
 
     def sendCoords(self):
-        if not self.register():
-            print("Registration failed. Stopping process.")
-            return
-        
-        data = {"id":self.id, "lon": self.long, "lat": self.lat}
+        self.register()
 
-        response = requests.post(f"{FASTAPI_SERVER}/coords", json=data)
+        print("Registration successful. Starting to send coordinates...")
 
-        if response.status_code == 200:
-            print(f"Sent coordinates successfully.")
-            
-        else:
-            print(f"Failed to send coordinates. Status Code: {response.status_code}")
-            print("Trying again in 5 seconds...")
-            time.sleep(5)
-            self.sendCoords()
+        while True:
+            if not self.check_server_connection():
+                print("Server is unreachable. Waiting for connection...")
+                time.sleep(5)
+                continue  # Retry server connection
+
+            data = {"id": self.id, "lon": self.long, "lat": self.lat}
+
+            try:
+                response = requests.post(f"{FASTAPI_SERVER}/coords", json=data)
+
+                if response.status_code == 200:
+                    print("Sent coordinates successfully.")
+                else:
+                    print(f"Failed to send coordinates. Status Code: {response.status_code}")
+                    print("Retrying in 5 seconds...")
+                    time.sleep(5)
+
+            except requests.exceptions.RequestException as e:
+                print(f"Request failed: {e}")
+                print("Retrying in 5 seconds...")
+                time.sleep(5)
+
+            time.sleep(20)
+
 
 
 
@@ -76,7 +89,16 @@ class Airtag:
 
         print(" Playing sound!")
 
-p1 = Airtag(8001, 12.1, 100.12)
+
+def generate_random_longitude(): 
+    return round(random.uniform(5.8663, 15.0419), 6)  # West-East range
+
+def generate_random_latitude():
+    return round(random.uniform(47.2701, 55.0584), 6)  # North-South range
+
+
+
+p1 = Airtag(8001,generate_random_longitude(), generate_random_latitude())
 
 
 
