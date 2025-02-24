@@ -30,11 +30,11 @@ conn = mysql.connector.connect(
 
 #==========================================Registration==================================================
 @app.post("/register")
-async def register(data : Dict[str, Any]):
+async def register(airtag : Airtag):
     conn.connect()
 
-    id = data["id"]
-    name = data["name"]
+    id = airtag.id
+    name = airtag.name
     cursor = conn.cursor()
     query = f"INSERT INTO airtags.tags (id, name) VALUES ({id},{name});"
 
@@ -55,7 +55,8 @@ async def register(data : Dict[str, Any]):
         return 400
 
 
-
+@app.post("/test")
+async def test()
 #============================================Coords======================================================
 @app.post("/coords")
 async def getCoords(coords : dict = Body(...)):
