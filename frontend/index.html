@@ -17,7 +17,7 @@
             <!-- Hinzufügen-Formular -->
             <div class="mb-6">
                 <input type="number" id="tagId" placeholder="Airtag ID" class="w-full p-2 border rounded mb-2">
-                <input type="string" id="tagId" placeholder="Name" class="w-full p-2 border rounded mb-2">
+                <input type="string" id="tagName" placeholder="Name" class="w-full p-2 border rounded mb-2">
                 <button onclick="addAirtag()" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
                     Airtag hinzufügen
                 </button>
@@ -124,6 +124,7 @@ async function addAirtag() {
         if (response.ok) {
             updateAirtagList();
             document.getElementById('tagId').value = '';
+            document.getElementById('tagName').value = '';
         }
     } catch (error) {
         console.error('Fehler beim Hinzufügen:', error);
