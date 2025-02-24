@@ -4,15 +4,21 @@ import requests
 import mysql.connector
 from pydantic import BaseModel
 from typing import Dict,Any
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 table_name = "tags"
 
-class Airtag(BaseModel):
+class regAirtag(BaseModel):
     id: int
     name: str
-    lon: float
-    lat: float
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Für Entwicklung, im Produktivbetrieb einschränken
+    allow_methods=["POST"],
+)
 
 
 #==========================================Database======================================================
@@ -30,17 +36,21 @@ conn = mysql.connector.connect(
 
 #==========================================Registration==================================================
 @app.post("/register")
-async def register(airtag : Airtag):
+async def register(airtag : regAirtag):
     conn.connect()
 
     id = airtag.id
     name = airtag.name
+    print(id, name)
     cursor = conn.cursor()
-    query = f"INSERT INTO airtags.tags (id, name) VALUES ({id},{name});"
+
+    # SQL-Query mit Platzhaltern für Werte
+    id_query = "INSERT INTO airtags.tags (id, name) VALUES (%s, %s);"
+    id_data = (id, name)
 
     if isinstance(id, int):
         try:
-            cursor.execute(query)
+            cursor.execute(id_query, id_data)
             conn.commit()
             conn.close()
             return 200
@@ -54,9 +64,6 @@ async def register(airtag : Airtag):
         conn.close()
         return 400
 
-
-@app.post("/test")
-async def test()
 #============================================Coords======================================================
 @app.post("/coords")
 async def getCoords(coords : dict = Body(...)):
