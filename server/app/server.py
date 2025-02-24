@@ -87,13 +87,15 @@ async def getCoords(coords : dict = Body(...)):
         conn.close()
         return 400
 
-
-@app.post("/tags")
-async def getTags(tags : dict = Body(...)):
-    print("test")
-
-
-
+@app.put("/tags")
+def updateTags():
+    conn.connect()
+    cursor = conn.cursor()
+    query = f"SELECT * FROM {table_name};"
+    cursor.execute(query)
+    result = cursor.fetchall()
+    conn.close()
+    return result
 
 #==========================================Tone===========================================================
 @app.get("/tone")
