@@ -2,10 +2,17 @@ from fastapi import FastAPI
 from fastapi.params import Body
 import requests
 import mysql.connector
+from pydantic import BaseModel
+from typing import Dict,Any
 
 app = FastAPI()
 table_name = "tags"
 
+class Airtag(BaseModel):
+    id: int
+    name: str
+    lon: float
+    lat: float
 
 
 #==========================================Database======================================================
@@ -23,12 +30,13 @@ conn = mysql.connector.connect(
 
 #==========================================Registration==================================================
 @app.post("/register")
-async def register(reg: dict = Body(...)):
+async def register(data : Dict[str, Any]):
     conn.connect()
 
-    id = reg["id"]
+    id = data["id"]
+    name = data["name"]
     cursor = conn.cursor()
-    query = f"INSERT INTO airtags.tags (id) VALUES ({id})"
+    query = f"INSERT INTO airtags.tags (id, name) VALUES ({id},{name});"
 
     if isinstance(id, int):
         try:
@@ -56,6 +64,7 @@ async def getCoords(coords : dict = Body(...)):
     lon = coords["lon"]
     lat = coords["lat"]
     cursor = conn.cursor()
+
     query = f"UPDATE {table_name} SET lon = {lon}, lat = {lat} WHERE id = {id};"
 
     if isinstance(lon, float) and isinstance(lat, float):
@@ -70,6 +79,10 @@ async def getCoords(coords : dict = Body(...)):
         conn.close()
         return 400
 
+
+@app.post("/tags")
+async def getTags(tags : dict = Body(...)):
+    print("test")
 
 
 

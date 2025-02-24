@@ -46,7 +46,9 @@
     </div>
 
     <script>
-        let map;
+
+        
+let map;
 let markers = {};
 let currentEditingId = null;
 
@@ -105,14 +107,19 @@ function updateMapMarkers(airtags) {
 // Airtag hinzufügen
 async function addAirtag() {
     const tagId = document.getElementById('tagId').value;
+    const tagName = document.getElementById('tagName').value;
+
+    console.log("Add Airtag:",tagId, tagName);
+
     if (!tagId) return;
 
     try {
         const response = await fetch('http://localhost:8000/register', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({id: parseInt(tagId)})
+            body: JSON.stringify({id: tagId, name: tagName})
         });
+        console.log(response);
 
         if (response.ok) {
             updateAirtagList();
@@ -184,8 +191,8 @@ async function saveTagName() {
 
 // Initialisierung
 initMap();
-updateAirtagList();
-setInterval(updateAirtagList, 15000); // Automatische Aktualisierung alle 15 Sekunden
+//updateAirtagList();
+//setInterval(updateAirtagList, 15000); // Automatische Aktualisierung alle 15 Sekunden
     </script>
 </body>
 </html>
