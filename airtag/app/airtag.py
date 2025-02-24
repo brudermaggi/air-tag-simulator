@@ -4,7 +4,6 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import time
 import random
-import docker
 import os
 
 FASTAPI_SERVER = "http://server:8000"
