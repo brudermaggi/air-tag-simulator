@@ -181,9 +181,9 @@ async function changeName() {
 
     try {
         const response = await fetch(`http://localhost:8000/tags/changeName`, {
-            method: 'PUT',
+            method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({id: tagId, name: tagName})
+            body: JSON.stringify({id: tag[1], name: tag[0]})
         });
 
         if (response.ok) {
