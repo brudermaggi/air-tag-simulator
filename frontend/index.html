@@ -178,13 +178,12 @@ function closeNameModal() {
 
 async function changeName() {
     const name = document.getElementById('tagName').value;
-    if (!name || !tagId) return;
 
     try {
-        const response = await fetch(`http://localhost:8000/tags/${currentEditingId}`, {
+        const response = await fetch(`http://localhost:8000/tags/changeName`, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({name})
+            body: JSON.stringify({id: tagId, name: tagName})
         });
 
         if (response.ok) {
