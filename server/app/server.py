@@ -87,7 +87,10 @@ async def getCoords(coords : dict = Body(...)):
         conn.close()
         return 400
 
-@app.put("/tags")
+
+#===============================================Tags=====================================================
+
+@app.get("/tags")
 def updateTags():
     conn.connect()
     cursor = conn.cursor()
@@ -97,10 +100,26 @@ def updateTags():
     conn.close()
     return result
 
+#=================================================Change Airtag Nsme=====================================
+
+@app.post("/tags/changeName")
+def changeName(airtag : regAirtag):
+    body = airtag
+    conn.connect()
+    cursor = conn.cursor()
+    query = "UPDATE tags SET name = %s WHERE id = %s;"
+    data = (body.name, body.id)
+    cursor.execute(query,data)
+    conn.commit()
+    conn.close()
+    return 200
+
+
+
 #==========================================Tone===========================================================
 @app.get("/tone")
 def play_sound():
-    url = "http://airtag:8001/tone"  # Adjust if hosted elsewhere
+    url = "http://airtag:8001/tone"  
     payload = {"action": "play_sound"}  # JSON payload
     response = requests.post(url, json=payload)  # Sending request
     print(response.json())  # Print server response

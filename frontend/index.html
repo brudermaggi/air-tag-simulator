@@ -40,7 +40,7 @@
             <input type="text" id="tagName" class="w-full p-2 border rounded mb-4">
             <div class="flex justify-end space-x-2">
                 <button onclick="closeNameModal()" class="px-4 py-2 text-gray-500 hover:text-gray-700">Abbrechen</button>
-                <button onclick="saveTagName()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Speichern</button>
+                <button onclick="changeName()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Speichern</button>
             </div>
         </div>
     </div>
@@ -170,7 +170,7 @@ function closeNameModal() {
     currentEditingId = null;
 }
 
-async function saveTagName() {
+async function changeName() {
     const name = document.getElementById('tagName').value;
     if (!name || !currentEditingId) return;
 
