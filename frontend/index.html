@@ -37,10 +37,10 @@
     <div id="nameModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
         <div class="bg-white p-6 rounded-lg w-96">
             <h3 class="text-lg font-bold mb-4">Airtag Name ändern</h3>
-            <input type="text" id="tagName" class="w-full p-2 border rounded mb-4">
+            <input type="text" id="tagModalName" class="w-full p-2 border rounded mb-4">
             <div class="flex justify-end space-x-2">
                 <button onclick="closeNameModal()" class="px-4 py-2 text-gray-500 hover:text-gray-700">Abbrechen</button>
-                <button onclick="changeName()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Speichern</button>
+                <button onclick="changeName(id)" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Speichern</button>
             </div>
         </div>
     </div>
@@ -78,8 +78,8 @@ async function updateAirtagList() {
                     <p class="text-sm text-gray-500">Lat: ${tag[3]}</p>
                 </div>
                 <div class="space-x-2">
-                    <button onclick="showNameModal(${tag.id})" class="text-blue-500 hover:text-blue-700">✏️</button>
-                    <button onclick="deleteAirtag(${tag.id})" class="text-red-500 hover:text-red-700">🗑️</button>
+                    <button onclick="showNameModal(${tag[0]})" class="text-blue-500 hover:text-blue-700">✏️</button>
+                    <button onclick="deleteAirtag(${tag[0]})" class="text-red-500 hover:text-red-700">🗑️</button>
                 </div>
             </div>
         `;
@@ -177,13 +177,16 @@ function closeNameModal() {
 }
 
 async function changeName() {
-    const name = document.getElementById('tagName').value;
+    
+    var airtagname = document.getElementById("tagModalName").value;
+    console.log(airtagname)
+    console.log(currentEditingId)
 
     try {
         const response = await fetch(`http://localhost:8000/tags/changeName`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({id: tag[1], name: tag[0]})
+            body: JSON.stringify({id: currentEditingId, name: airtagname})
         });
 
         if (response.ok) {
