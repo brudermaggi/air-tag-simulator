@@ -72,8 +72,10 @@ async function updateAirtagList() {
         element.innerHTML = `
             <div class="flex justify-between items-center">
                 <div>
-                    <h3 class="font-semibold">${tag.name || `Airtag ${tag.id}`}</h3>
-                    <p class="text-sm text-gray-500">ID: ${tag.id}</p>
+                    <h3 class="font-semibold">Name: ${tag[1]}</h3>
+                    <p class="text-sm text-gray-500">ID: ${tag[0]}</p>
+                    <p class="text-sm text-gray-500">Lon: ${tag[2]}</p>
+                    <p class="text-sm text-gray-500">Lat: ${tag[3]}</p>
                 </div>
                 <div class="space-x-2">
                     <button onclick="showNameModal(${tag.id})" class="text-blue-500 hover:text-blue-700">✏️</button>
