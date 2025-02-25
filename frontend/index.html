@@ -163,16 +163,20 @@ async function playSound(id) {
 function showNameModal(id) {
     currentEditingId = id;
     document.getElementById('nameModal').classList.remove('hidden');
+    var MapElement = document.getElementById('map')
+    MapElement.style.opacity = "0"
 }
 
 function closeNameModal() {
     document.getElementById('nameModal').classList.add('hidden');
+    var MapElement = document.getElementById('map')
+    MapElement.style.opacity = "1"
     currentEditingId = null;
 }
 
 async function changeName() {
     const name = document.getElementById('tagName').value;
-    if (!name || !currentEditingId) return;
+    if (!name || !tagId) return;
 
     try {
         const response = await fetch(`http://localhost:8000/tags/${currentEditingId}`, {
