@@ -33,12 +33,13 @@ class Airtag:
         return False
 # ========================== Register if connection is 👌 ===========================
     def register(self):   
+        print("Registering...")
         while not self.check_server_connection():
             print("Server is down. Cannot register. Retrying...")
             time.sleep(5)
         while True:
             try:
-                response = requests.post(f"{FASTAPI_SERVER}/register", json={"id": self.id})
+                response = requests.post(f"{FASTAPI_SERVER}/checkregister", json={"id": self.id})
                 if response.status_code == 200:
                     print("Successfully registered.")
                     return True
@@ -52,6 +53,7 @@ class Airtag:
 
 # ======================= send coords =====================================================
     def sendCoords(self):
+        print("Starting to send coordinates...")
         self.register()
 
         print("Registration successful. Starting to send coordinates...")
@@ -138,5 +140,4 @@ async def execute_command(command: Command):
 
 # ====================== main runenr ===================================
 if __name__ == "__main__":
-    p1.sendCoords()
     uvicorn.run(app, host="0.0.0.0", port=8001)

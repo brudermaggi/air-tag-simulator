@@ -33,6 +33,22 @@ conn = mysql.connector.connect(
 
 #==========================================WebService====================================================
 
+@app.post("/checkregister")
+def checkregister(airtag : dict = Body(...)):
+    conn.connect()
+    cursor = conn.cursor()
+    id = airtag["id"]
+    query = "SELECT * FROM tags WHERE id = %s;"
+    cursor.execute(query, (id,))
+    result = cursor.fetchall()
+    if len(result)>0:
+        conn.close()
+        return 200
+    else:
+        conn.close()
+        return 400
+
+
 
 #==========================================Registration==================================================
 @app.post("/register")
@@ -53,6 +69,7 @@ async def register(airtag : regAirtag):
             cursor.execute(id_query, id_data)
             conn.commit()
             conn.close()
+            requests.post(f"http://airtag:{id}/start")
             return 200
         except mysql.connector.errors.IntegrityError:
             conn.close()
@@ -92,6 +109,7 @@ async def getCoords(coords : dict = Body(...)):
 
 @app.get("/tags")
 def updateTags():
+
     conn.connect()
     cursor = conn.cursor()
     query = f"SELECT * FROM {table_name};"
