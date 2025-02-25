@@ -121,12 +121,13 @@ def updateTags():
 #=================================================Change Airtag Nsme=====================================
 
 @app.post("/tags/changeName")
-def changeName(airtag : regAirtag):
-    body = airtag
+def changeName(body : dict = Body(...)):
     conn.connect()
+    id = body["id"]
+    name = body["name"]
     cursor = conn.cursor()
     query = "UPDATE tags SET name = %s WHERE id = %s;"
-    data = (body.name, body.id)
+    data = (name, id)
     cursor.execute(query,data)
     conn.commit()
     conn.close()
