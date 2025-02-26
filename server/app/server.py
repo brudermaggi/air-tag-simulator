@@ -152,7 +152,7 @@ def updateTags():
 #=================================================Change Airtag Nsme=====================================
 #TODO Datentyp Prüfung
 @app.post("/tags/changeName")
-def changeName(body : ChangeName):
+def changeName(body : dict = Body(...)):
     conn.connect()
     id = body.id
     name = body.name
