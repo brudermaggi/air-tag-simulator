@@ -10,6 +10,11 @@ FASTAPI_SERVER = "http://server:8000"
 
 app = FastAPI()
 
+class Coord(BaseModel):
+    id: int
+    lon: float
+    lat: float
+
 
 # ============================ Class Airtag =======================================
 class Airtag:
@@ -54,13 +59,14 @@ class Airtag:
     def sendCoords(self):
         print("Starting to send coordinates...")
 
-        print("Registration successful. Starting to send coordinates...")
+
             
         self.long = generate_random_longitude()
         self.lat = generate_random_latitude()
 
-        data = {"id": self.id, "lon": self.long, "lat": self.lat}
-
+        coords = Coord(id=self.id, lon=self.long, lat=self.lat)
+        data = coords.model_dump()
+        print(data)
         try:
             response = requests.post(f"{FASTAPI_SERVER}/coords", json=data)
 

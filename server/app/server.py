@@ -13,6 +13,12 @@ class regAirtag(BaseModel):
     id: int
     name: str
 
+class Coords(BaseModel):
+    id: int
+    lon: float
+    lat: float
+
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -55,10 +61,10 @@ async def checkregister(airtag: dict = Body(...)):
 
 #==========================================Registration==================================================
 @app.post("/register")
-async def register(airtag : regAirtag):
+async def register(dict : dict = Body(...)):
     conn.connect()
 
-    id = airtag.id
+    id = dict["id"]
     print(id)
     cursor = conn.cursor()
 
@@ -84,29 +90,41 @@ async def register(airtag : regAirtag):
         return 400
 
 #============================================Coords======================================================
+
 @app.post("/coords")
-async def getCoords(coords : dict = Body(...)):
-    conn.connect()
-    id = coords["id"]
-    lon = coords["lon"]
-    lat = coords["lat"]
-    cursor = conn.cursor()
+async def getCoords(coords: Coords):
+    print("Getting Coords")
+    try:
+        conn.connect()
+        id = coords.id
+        lon = coords.lon
+        lat = coords.lat
 
-    query = "UPDATE tags SET lon = %s, lat = %s WHERE id = %s;", 
-    query_data = lon, lat, id
+        # Validate and convert lon/lat
+        try:
+            lon = float(lon)
+            lat = float(lat)
+        except ValueError:
+            return {"error": "Invalid coordinates"}, 400
 
-    if isinstance(lon, float) and isinstance(lat, float):
+        cursor = conn.cursor()
+
+        query = "UPDATE tags SET lon = %s, lat = %s WHERE id = %s;"
+        query_data = (lon, lat, id)
+
         print("Inserting into database")
         cursor.execute(query, query_data)
         conn.commit()
-        
-        print("Committed Coordinates")
-        conn.close()
-        return 200
-    else:
-        conn.close()
-        return 400
 
+        print("Committed Coordinates")
+        return {"message": "Success"}, 200
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return {"error": "Internal server error"}, 500
+
+    finally:
+        conn.close()
 
 #===============================================Tags=====================================================
 
