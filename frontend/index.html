@@ -51,7 +51,7 @@ function initMap() {
 
 // Airtag Liste aktualisieren
 async function updateAirtagList() {
-    const response = await fetch('http://localhost:8000/tags');
+    const response = await fetch('http://server:8000/tags');
     const airtags = await response.json();
     
     const listContainer = document.getElementById('airtagList');
