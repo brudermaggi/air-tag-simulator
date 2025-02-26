@@ -8,8 +8,8 @@ import os
 
 FASTAPI_SERVER = "http://server:8000"
 
-
 app = FastAPI()
+
 
 # ============================ Class Airtag =======================================
 class Airtag:
@@ -33,56 +33,60 @@ class Airtag:
         return False
     
 # ========================== Register if connection is 👌 ===========================
+
     def register(self):   
 
         print("Registering...")
-    
-        try:
-            response = requests.post(f"{FASTAPI_SERVER}/checkregister", json={"id": self.id})
-            if response.status_code == 200:
-                print("Successfully registered.")
-                return True
-                 
-            else:
-                print(f"Error during registration: {response.status_code}")
-                return False
-        except requests.exceptions.RequestException as e:
-            print(f"Registration request failed: {e}")
+        while not self.check_server_connection():
+            print("Server is down. Cannot register. Retrying...")
+            time.sleep(5)
+        while True:
+            try:
+                response = requests.post(f"{FASTAPI_SERVER}/checkregister", json={"id": self.id})
+                if response.status_code == 200:
+                    print("Successfully registered.")
+                    return True
+                else:
+                    print(f"Error during registration: {response.status_code}")
+            except requests.exceptions.RequestException as e:
+                print(f"Registration request failed: {e}")
 
 
 # ======================= send coords =====================================================
     def sendCoords(self):
         print("Starting to send coordinates...")
+        self.register()
+
+        print("Registration successful. Starting to send coordinates...")
 
         while True:
+            if not self.check_server_connection():
+                print("Server is unreachable. Waiting for connection...")
+                time.sleep(5)
+                continue  
 
+            
             self.long = generate_random_longitude()
             self.lat = generate_random_latitude()
 
-            data = {"id": self.id, "lon": self.long, "lat": self.lat}
+        data = {"id": self.id, "lon": self.long, "lat": self.lat}
 
-            try:
-                response = requests.post(f"{FASTAPI_SERVER}/coords", json=data)
+        try:
+            response = requests.post(f"{FASTAPI_SERVER}/coords", json=data)
 
-                if response.status_code == 200:
-                    print(f"Sent new coordinates successfully: ({self.long}, {self.lat})")
-                else:
-                    print(f"Failed to send coordinates. Status Code: {response.status_code}")
-                    print("Retrying in 5 seconds...")
-                    time.sleep(5)
-
-            except requests.exceptions.RequestException as e:
-                print(f"Request failed: {e}")
+            if response.status_code == 200:
+                print(f"Sent new coordinates successfully: ({self.long}, {self.lat})")
+            else:
+                print(f"Failed to send coordinates. Status Code: {response.status_code}")
                 print("Retrying in 5 seconds...")
                 time.sleep(5)
 
-            time.sleep(10)
-# ======================================
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed: {e}")
+            print("Retrying in 5 seconds...")
+            time.sleep(5)
 
-    def regloop(self):
-        while not self.register():
-            print("Looping register")
-
+            time.sleep(20)
 
 # ===================================== play sound =========================================
 
@@ -112,7 +116,7 @@ class Command(BaseModel):
 @app.get("/start")
 def start():
     p1.sendCoords()
-    return {"status": "Started"}
+    return 200
 
 @app.post("/stop")
 def stop_container():

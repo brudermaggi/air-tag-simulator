@@ -1,10 +1,10 @@
-from fastapi import FastAPI
-from fastapi.params import Body
+from fastapi import FastAPI, HTTPException, Body
 import requests
 import mysql.connector
 from pydantic import BaseModel
 from typing import Dict,Any
 from fastapi.middleware.cors import CORSMiddleware
+import time
 
 app = FastAPI()
 table_name = "tags"
@@ -34,19 +34,22 @@ conn = mysql.connector.connect(
 #==========================================WebService====================================================
 
 @app.post("/checkregister")
-def checkregister(airtag : dict = Body(...)):
-    conn.connect()
-    cursor = conn.cursor()
-    id = airtag["id"]
-    query = "SELECT * FROM tags WHERE id = %s;"
-    cursor.execute(query, (id,))
-    result = cursor.fetchall()
-    if len(result)>0:
+def checkregister(airtag: dict = Body(...)):
+    try:
+        cursor = conn.cursor()
+        id = airtag["id"]
+        query = "SELECT * FROM tags WHERE id = %s;"
+        cursor.execute(query, (id,))
+        result = cursor.fetchall()
+        
+        if len(result) > 0:
+            return 200
+        else:
+            return 400
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+    finally:
         conn.close()
-        return 200
-    else:
-        conn.close()
-        return 400
 
 
 
@@ -69,7 +72,9 @@ async def register(airtag : regAirtag):
             cursor.execute(id_query, id_data)
             conn.commit()
             conn.close()
-            requests.post(f"http://airtag:{id}/start")
+            print("ID registered, proceed with coords")
+            print(f"http://airtag:{id}/start")
+            requests.get(f"http://airtag:{id}/start")
             return 200
         except mysql.connector.errors.IntegrityError:
             conn.close()
@@ -133,7 +138,16 @@ def changeName(body : dict = Body(...)):
     conn.close()
     return 200
 
-
+@app.post("/tags/delete")
+def deleteTag(body : dict = Body(...)):
+    conn.connect()
+    id = body["id"]
+    cursor = conn.cursor()
+    query = "DELETE FROM tags WHERE id = %s;"
+    cursor.execute(query,(id,))
+    conn.commit()
+    conn.close()
+    return 200
 
 #==========================================Tone===========================================================
 @app.get("/tone")
