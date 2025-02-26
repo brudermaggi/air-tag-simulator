@@ -90,11 +90,11 @@ class Airtag:
 #===========================================================================================
 
 
-    def regloop():
+    def regloop(self):
         while not self.register():
             print("retrying")
 
-            
+
 # ===================================== play sound =========================================
 
     def playSound(self):
