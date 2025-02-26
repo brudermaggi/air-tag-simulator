@@ -20,7 +20,9 @@ class Coords(BaseModel):
     lon: float
     lat: float
 
-
+class ChangeName(BaseModel):
+    id: int
+    name: str
 
 app.add_middleware(
     CORSMiddleware,
@@ -150,10 +152,10 @@ def updateTags():
 #=================================================Change Airtag Nsme=====================================
 #TODO Datentyp Prüfung
 @app.post("/tags/changeName")
-def changeName(body : dict = Body(...)):
+def changeName(body : ChangeName):
     conn.connect()
-    id = body["id"]
-    name = body["name"]
+    id = body.id
+    name = body.name
     cursor = conn.cursor()
     query = "UPDATE tags SET name = %s WHERE id = %s;"
     data = (name, id)
