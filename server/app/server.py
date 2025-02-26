@@ -156,6 +156,7 @@ def changeName(body : ChangeName):
     conn.connect()
     id = body.id
     name = body.name
+    print(id, name)
     cursor = conn.cursor()
     query = "UPDATE tags SET name = %s WHERE id = %s;"
     data = (name, id)
