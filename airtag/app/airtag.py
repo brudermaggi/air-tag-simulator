@@ -69,25 +69,32 @@ class Airtag:
             self.long = generate_random_longitude()
             self.lat = generate_random_latitude()
 
-        data = {"id": self.id, "lon": self.long, "lat": self.lat}
+            data = {"id": self.id, "lon": self.long, "lat": self.lat}
 
-        try:
-            response = requests.post(f"{FASTAPI_SERVER}/coords", json=data)
+            try:
+                response = requests.post(f"{FASTAPI_SERVER}/coords", json=data)
 
-            if response.status_code == 200:
-                print(f"Sent new coordinates successfully: ({self.long}, {self.lat})")
-            else:
-                print(f"Failed to send coordinates. Status Code: {response.status_code}")
+                if response.status_code == 200:
+                    print(f"Sent new coordinates successfully: ({self.long}, {self.lat})")
+                else:
+                    print(f"Failed to send coordinates. Status Code: {response.status_code}")
+                    print("Retrying in 5 seconds...")
+                    time.sleep(5)
+
+            except requests.exceptions.RequestException as e:
+                print(f"Request failed: {e}")
                 print("Retrying in 5 seconds...")
                 time.sleep(5)
 
-        except requests.exceptions.RequestException as e:
-            print(f"Request failed: {e}")
-            print("Retrying in 5 seconds...")
-            time.sleep(5)
+                time.sleep(20)
+#===========================================================================================
 
-            time.sleep(20)
 
+    def regloop():
+        while not self.register():
+            print("retrying")
+
+            
 # ===================================== play sound =========================================
 
     def playSound(self):
