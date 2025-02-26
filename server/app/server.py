@@ -154,8 +154,8 @@ def updateTags():
 @app.post("/tags/changeName")
 def changeName(body : dict = Body(...)):
     conn.connect()
-    id = body.id
-    name = body.name
+    id = body["id"]
+    name = body["name"]
     print(id, name)
     cursor = conn.cursor()
     query = "UPDATE tags SET name = %s WHERE id = %s;"
