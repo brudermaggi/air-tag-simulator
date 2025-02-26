@@ -177,11 +177,8 @@ function closeNameModal() {
 }
 
 async function changeName() {
-    
     var airtagname = document.getElementById("tagModalName").value;
-    console.log(airtagname)
-    console.log(currentEditingId)
-
+    
     try {
         const response = await fetch(`http://localhost:8000/tags/changeName`, {
             method: 'POST',
