@@ -51,9 +51,9 @@ function initMap() {
 
 // Airtag Liste aktualisieren
 async function updateAirtagList() {
-    const response = await fetch('http://server:8000/tags');
-    const airtags = await response.json();
-    
+    const response = await fetch('http://localhost:8000/tags');
+    var airtags = await response.json();
+    airtags = JSON.parse(airtags)
     const listContainer = document.getElementById('airtagList');
     listContainer.innerHTML = '';
 
@@ -63,10 +63,10 @@ async function updateAirtagList() {
         element.innerHTML = `
             <div class="flex justify-between items-center">
                 <div>
-                    <h3 class="font-semibold">Name: ${tag[1]}</h3>
-                    <p class="text-sm text-gray-500">ID: ${tag[0]}</p>
-                    <p class="text-sm text-gray-500">Lon: ${tag[2]}</p>
-                    <p class="text-sm text-gray-500">Lat: ${tag[3]}</p>
+                    <h3 class="font-semibold">Name: ${tag.name}</h3>
+                    <p class="text-sm text-gray-500">ID: ${tag.id}</p>
+                    <p class="text-sm text-gray-500">Lon: ${tag.lon}</p>
+                    <p class="text-sm text-gray-500">Lat: ${tag.lat}</p>
                 </div>
                 <div class="space-x-2">
                     <button onclick="showNameModal(${tag[0]})" class="text-blue-500 hover:text-blue-700">✏️</button>
@@ -90,7 +90,7 @@ function updateMapMarkers(airtags) {
     // Neue Marker hinzufügen
     airtags.forEach(tag => {
         if (tag.lat && tag.lon) {
-            const marker = L.marker([tag.lat, tag.lon])
+            const marker = L.marker([tag.lon, tag.lat])
                 .addTo(map)
                 .bindPopup(`<b>${tag.name || `Airtag ${tag.id}`}</b><br>ID: ${tag.id}`);
             markers[tag.id] = marker;
