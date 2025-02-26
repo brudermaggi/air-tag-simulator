@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from typing import Dict,Any
 from fastapi.middleware.cors import CORSMiddleware
 import time
+import json
 
 
 app = FastAPI()
@@ -137,9 +138,14 @@ def updateTags():
     query = f"SELECT * FROM tags;"
     cursor.execute(query)
     result = cursor.fetchall()
-    print(result)
+    keys = ["id", "name", "lon", "lat"]
+    result = [dict(zip(keys, values)) for values in result]
+    json_output=json.dumps(result, indent=2)
+
+    print(json_output)
+
     conn.close()
-    return result
+    return json_output
 
 #=================================================Change Airtag Nsme=====================================
 #TODO Datentyp Prüfung
