@@ -2,9 +2,7 @@ from fastapi import FastAPI, HTTPException, Body
 import requests
 import mysql.connector
 from pydantic import BaseModel
-from typing import Dict,Any
 from fastapi.middleware.cors import CORSMiddleware
-import time
 import json
 
 
