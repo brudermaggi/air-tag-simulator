@@ -28,43 +28,34 @@ class Airtag:
                 print("FastAPI server is reachable.")
                 return True
         except requests.exceptions.RequestException:
-            print("FastAPI server is unreachable. Retrying in 5 seconds...")
-            time.sleep(5)
+            print("FastAPI server is unreachable. Retrying in 1 seconds...")
+            time.sleep(1)
         return False
+    
 # ========================== Register if connection is 👌 ===========================
     def register(self):   
-        print("Registering...")
-        while not self.check_server_connection():
-            print("Server is down. Cannot register. Retrying...")
-            time.sleep(5)
-        while True:
-            try:
-                response = requests.post(f"{FASTAPI_SERVER}/checkregister", json={"id": self.id})
-                if response.status_code == 200:
-                    print("Successfully registered.")
-                    return True
-                else:
-                    print(f"Error during registration: {response.status_code}")
-            except requests.exceptions.RequestException as e:
-                print(f"Registration request failed: {e}")
 
-            print("Retrying registration in 5 seconds...")
-            time.sleep(5)
+        print("Registering...")
+    
+        try:
+            response = requests.post(f"{FASTAPI_SERVER}/checkregister", json={"id": self.id})
+            if response.status_code == 200:
+                print("Successfully registered.")
+                return True
+                 
+            else:
+                print(f"Error during registration: {response.status_code}")
+                return False
+        except requests.exceptions.RequestException as e:
+            print(f"Registration request failed: {e}")
+
 
 # ======================= send coords =====================================================
     def sendCoords(self):
         print("Starting to send coordinates...")
-        self.register()
-
-        print("Registration successful. Starting to send coordinates...")
 
         while True:
-            if not self.check_server_connection():
-                print("Server is unreachable. Waiting for connection...")
-                time.sleep(5)
-                continue  
 
-            
             self.long = generate_random_longitude()
             self.lat = generate_random_latitude()
 
@@ -85,7 +76,13 @@ class Airtag:
                 print("Retrying in 5 seconds...")
                 time.sleep(5)
 
-            time.sleep(20)
+            time.sleep(10)
+# ======================================
+
+    def regloop(self):
+        while not self.register():
+            print("Looping register")
+
 
 # ===================================== play sound =========================================
 
@@ -103,13 +100,14 @@ def generate_random_latitude():
 
 # ====================================== Creating Airtag ====================================
 p1 = Airtag(8001,generate_random_longitude(), generate_random_latitude())
-
+p1.regloop()
 
 
 class Command(BaseModel):
     action: str
 
 # ====================================== fast api ============================================
+
 
 @app.get("/start")
 def start():
