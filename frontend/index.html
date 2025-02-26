@@ -69,6 +69,7 @@ async function updateAirtagList() {
                     <p class="text-sm text-gray-500">Lat: ${tag.lat}</p>
                 </div>
                 <div class="space-x-2">
+                    <button onclick="playSound(${tag.id})" class="text-blue-500 hover:text-blue-700"> 🎶</button>
                     <button onclick="showNameModal(${tag.id})" class="text-blue-500 hover:text-blue-700">✏️</button>
                     <button onclick="deleteAirtag(${tag.id})" class="text-red-500 hover:text-red-700">🗑️</button>
                 </div>
@@ -129,8 +130,10 @@ async function addAirtag() {
 // Airtag löschen
 async function deleteAirtag(id) {
     try {
-        const response = await fetch(`http://localhost:8000/tags/${id}`, {
-            method: 'DELETE'
+        const response = await fetch(`http://localhost:8000/tags/delete`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id})
         });
         
         if (response.ok) {
@@ -174,7 +177,6 @@ async function changeName(currentEditingId) {
 
     try {
         const response = await fetch(`http://localhost:8000/tags/changeName`, {
-            mode: 'no-cors',
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({id: currentEditingId, name: airtagname})
