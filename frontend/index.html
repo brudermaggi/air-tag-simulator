@@ -31,7 +31,7 @@
             <input type="text" id="tagModalName" class="w-full p-2 border rounded mb-4">
             <div class="flex justify-end space-x-2">
                 <button onclick="closeNameModal()" class="px-4 py-2 text-gray-500 hover:text-gray-700">Abbrechen</button>
-                <button onclick="changeName(id)" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Speichern</button>
+                <button onclick="changeName(currentEditingId)" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Speichern</button>
             </div>
         </div>
     </div>
@@ -69,8 +69,8 @@ async function updateAirtagList() {
                     <p class="text-sm text-gray-500">Lat: ${tag.lat}</p>
                 </div>
                 <div class="space-x-2">
-                    <button onclick="showNameModal(${tag[0]})" class="text-blue-500 hover:text-blue-700">✏️</button>
-                    <button onclick="deleteAirtag(${tag[0]})" class="text-red-500 hover:text-red-700">🗑️</button>
+                    <button onclick="showNameModal(${tag.id})" class="text-blue-500 hover:text-blue-700">✏️</button>
+                    <button onclick="deleteAirtag(${tag.id})" class="text-red-500 hover:text-red-700">🗑️</button>
                 </div>
             </div>
         `;
@@ -169,9 +169,9 @@ function closeNameModal() {
     currentEditingId = null;
 }
 
-async function changeName() {
+async function changeName(currentEditingId) {
     var airtagname = document.getElementById("tagModalName").value;
-    
+
     try {
         const response = await fetch(`http://localhost:8000/tags/changeName`, {
             mode: 'no-cors',
