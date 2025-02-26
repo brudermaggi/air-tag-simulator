@@ -61,7 +61,7 @@ async def checkregister(airtag: dict = Body(...)):
 
 #==========================================Registration==================================================
 @app.post("/register")
-async def register(dict : dict = Body(...)):
+def register(dict : dict = Body(...)):
     conn.connect()
 
     id = dict["id"]
@@ -92,7 +92,7 @@ async def register(dict : dict = Body(...)):
 #============================================Coords======================================================
 
 @app.post("/coords")
-async def getCoords(coords: Coords):
+def getCoords(coords: Coords):
     print("Getting Coords")
     try:
         conn.connect()
@@ -133,9 +133,10 @@ def updateTags():
 
     conn.connect()
     cursor = conn.cursor()
-    query = f"SELECT * FROM {table_name};"
+    query = f"SELECT * FROM tags;"
     cursor.execute(query)
     result = cursor.fetchall()
+    print(result)
     conn.close()
     return result
 
