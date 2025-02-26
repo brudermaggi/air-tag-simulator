@@ -34,7 +34,7 @@ conn = mysql.connector.connect(
 #==========================================WebService====================================================
 
 @app.post("/checkregister")
-def checkregister(airtag: dict = Body(...)):
+async def checkregister(airtag: dict = Body(...)):
     try:
         cursor = conn.cursor()
         id = airtag["id"]
@@ -59,13 +59,12 @@ async def register(airtag : regAirtag):
     conn.connect()
 
     id = airtag.id
-    name = airtag.name
-    print(id, name)
+    print(id)
     cursor = conn.cursor()
 
     # SQL-Query mit Platzhaltern für Werte
-    id_query = "INSERT INTO airtags.tags (id, name) VALUES (%s, %s);"
-    id_data = (id, name)
+    id_query = "INSERT INTO airtags.tags (id) VALUES (%s);"
+    id_data = (id, )
 
     if isinstance(id, int):
         try:
@@ -73,8 +72,6 @@ async def register(airtag : regAirtag):
             conn.commit()
             conn.close()
             print("ID registered, proceed with coords")
-            print(f"http://airtag:{id}/start")
-            requests.get(f"http://airtag:{id}/start")
             return 200
         except mysql.connector.errors.IntegrityError:
             conn.close()
@@ -95,11 +92,12 @@ async def getCoords(coords : dict = Body(...)):
     lat = coords["lat"]
     cursor = conn.cursor()
 
-    query = f"UPDATE {table_name} SET lon = {lon}, lat = {lat} WHERE id = {id};"
+    query = "UPDATE tags SET lon = %s, lat = %s WHERE id = %s;", 
+    query_data = lon, lat, id
 
     if isinstance(lon, float) and isinstance(lat, float):
         print("Inserting into database")
-        cursor.execute(query)
+        cursor.execute(query, query_data)
         conn.commit()
         
         print("Committed Coordinates")
@@ -124,7 +122,7 @@ def updateTags():
     return result
 
 #=================================================Change Airtag Nsme=====================================
-
+#TODO Datentyp Prüfung
 @app.post("/tags/changeName")
 def changeName(body : dict = Body(...)):
     conn.connect()
@@ -138,6 +136,7 @@ def changeName(body : dict = Body(...)):
     conn.close()
     return 200
 
+
 @app.post("/tags/delete")
 def deleteTag(body : dict = Body(...)):
     conn.connect()
@@ -150,9 +149,12 @@ def deleteTag(body : dict = Body(...)):
     return 200
 
 #==========================================Tone===========================================================
+
+#TODO: Implement tone
 @app.get("/tone")
-def play_sound():
-    url = "http://airtag:8001/tone"  
+def play_sound(dict : dict = Body(...)):
+    id = dict["id"]
+    url = f"http://airtag:{id}/tone"  
     payload = {"action": "play_sound"}  # JSON payload
     response = requests.post(url, json=payload)  # Sending request
     print(response.json())  # Print server response
