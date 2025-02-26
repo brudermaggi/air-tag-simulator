@@ -6,6 +6,7 @@ from typing import Dict,Any
 from fastapi.middleware.cors import CORSMiddleware
 import time
 
+
 app = FastAPI()
 table_name = "tags"
 

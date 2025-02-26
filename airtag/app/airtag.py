@@ -82,7 +82,7 @@ class Airtag:
             print("Retrying in 5 seconds...")
             #time.sleep(5)
 
-            #time.sleep(20)
+        time.sleep(20)
 #===========================================================================================
 
 
