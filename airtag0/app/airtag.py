@@ -1,10 +1,12 @@
 import requests
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Body
 from pydantic import BaseModel
 import time
 import random
 import os
+import docker
+import threading
 
 FASTAPI_SERVER = "http://server:8000"
 
@@ -47,7 +49,9 @@ class Airtag:
                 response = requests.post(f"{FASTAPI_SERVER}/register", json={"id": self.id})
                 if response.status_code == 200:
                     print("Successfully registered.")
-                    self.sendCoords()
+                    # Start sendCoords in a new thread
+                    threading.Thread(target=self.sendCoords, daemon=True).start()
+                    break
                 else:
                     print(f"Error during registration: {response.status_code}")
                     
@@ -58,31 +62,29 @@ class Airtag:
 # ======================= send coords =====================================================
     def sendCoords(self):
         print("Starting to send coordinates...")
+        while True:
+            self.long = generate_random_longitude()
+            self.lat = generate_random_latitude()
 
+            coords = Coord(id=self.id, lon=self.long, lat=self.lat)
+            data = coords.model_dump()
+            print(data)
+            try:
+                response = requests.post(f"{FASTAPI_SERVER}/coords", json=data)
 
-            
-        self.long = generate_random_longitude()
-        self.lat = generate_random_latitude()
+                if response.status_code == 200:
+                    print(f"Sent new coordinates successfully: ({self.long}, {self.lat})")
+                else:
+                    print(f"Failed to send coordinates. Status Code: {response.status_code}")
+                    print("Retrying in 5 seconds...")
+                    time.sleep(5)
 
-        coords = Coord(id=self.id, lon=self.long, lat=self.lat)
-        data = coords.model_dump()
-        print(data)
-        try:
-            response = requests.post(f"{FASTAPI_SERVER}/coords", json=data)
-
-            if response.status_code == 200:
-                print(f"Sent new coordinates successfully: ({self.long}, {self.lat})")
-            else:
-                print(f"Failed to send coordinates. Status Code: {response.status_code}")
+            except requests.exceptions.RequestException as e:
+                print(f"Request failed: {e}")
                 print("Retrying in 5 seconds...")
-                #time.sleep(5)
+                time.sleep(5)
 
-        except requests.exceptions.RequestException as e:
-            print(f"Request failed: {e}")
-            print("Retrying in 5 seconds...")
-            #time.sleep(5)
-
-        time.sleep(20)
+            time.sleep(20)
 #===========================================================================================
 
 
@@ -94,7 +96,6 @@ class Airtag:
 # ===================================== play sound =========================================
 
     def playSound(self):
-
         print("Playing sound!")
 
 # ====================================== Coord generation ===================================
@@ -133,11 +134,10 @@ def stop_container():
 
 
 @app.post("/tone")
-async def execute_command(command: Command):
+def execute_command(command : Command):	
     if command.action == "play_sound":
         p1.playSound()
-        return {"status": "Sound played"}
-    return {"status": "Unknown command"}
+        return {"status": "Playing sound"}
 
 # ====================== main runenr ===================================
 if __name__ == "__main__":

@@ -178,10 +178,19 @@ def deleteTag(body : dict = Body(...)):
 #==========================================Tone===========================================================
 
 #TODO: Implement tone
-@app.get("/tone")
+@app.post("/tone")
 def play_sound(dict : dict = Body(...)):
     id = dict["id"]
-    url = f"http://airtag:{id}/tone"  
+
+    match id:
+        case 8001:
+            url = "http://airtag0:8001/tone"
+        case 8002:
+            url = "http://airtag1:8002/tone"
+        case 8003:
+            url = "http://airtag2:8003/tone"
+            
+ 
     payload = {"action": "play_sound"}  # JSON payload
     response = requests.post(url, json=payload)  # Sending request
     print(response.json())  # Print server response
