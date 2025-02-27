@@ -39,32 +39,16 @@ conn = mysql.connector.connect(
     port="3306"
 )
 
-#==========================================WebService====================================================
-
-@app.post("/checkregister")
-async def checkregister(airtag: dict = Body(...)):
-    try:
-        cursor = conn.cursor()
-        id = airtag["id"]
-        query = "SELECT * FROM tags WHERE id = %s;"
-        cursor.execute(query, (id,))
-        result = cursor.fetchall()
-        
-        if len(result) > 0:
-            return 200
-        else:
-            return 400
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-    finally:
-        conn.close()
-
-
 
 #==========================================Registration==================================================
 @app.post("/register")
 def register(dict : dict = Body(...)):
-    conn.connect()
+    try:
+        conn.connect() 
+    except mysql.connector.Error as e: 
+        print(f"Error connecting to the database: {e}")
+        return 500  
+
 
     id = dict["id"]
     print(id)
@@ -97,7 +81,11 @@ def register(dict : dict = Body(...)):
 def getCoords(coords: Coords):
     print("Getting Coords")
     try:
-        conn.connect()
+        try:
+            conn.connect() 
+        except mysql.connector.Error as e: 
+            print(f"Error connecting to the database: {e}")
+            return 500  
         id = coords.id
         lon = coords.lon
         lat = coords.lat
@@ -133,7 +121,11 @@ def getCoords(coords: Coords):
 @app.get("/tags")
 def updateTags():
 
-    conn.connect()
+    try:
+        conn.connect() 
+    except mysql.connector.Error as e: 
+        print(f"Error connecting to the database: {e}")
+        return 500  
     cursor = conn.cursor()
     query = f"SELECT * FROM tags;"
     cursor.execute(query)
@@ -148,10 +140,16 @@ def updateTags():
     return json_output
 
 #=================================================Change Airtag Nsme=====================================
-#TODO Datentyp Prüfung
+
 @app.post("/tags/changeName")
 def changeName(body : dict = Body(...)):
-    conn.connect()
+
+    try:
+        conn.connect() 
+    except mysql.connector.Error as e: 
+        print(f"Error connecting to the database: {e}")
+        return 500  
+    
     id = body["id"]
     name = body["name"]
     print(id, name)
@@ -166,7 +164,13 @@ def changeName(body : dict = Body(...)):
 
 @app.post("/tags/delete")
 def deleteTag(body : dict = Body(...)):
-    conn.connect()
+    
+    try:
+        conn.connect() 
+    except mysql.connector.Error as e: 
+        print(f"Error connecting to the database: {e}")
+        return 500  
+    
     id = body["id"]
     cursor = conn.cursor()
     query = "DELETE FROM tags WHERE id = %s;"

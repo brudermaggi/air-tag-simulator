@@ -10,21 +10,21 @@
 </head>
 <body class="bg-gray-100">
     <div class="flex h-screen">
-        <!-- Sidebar -->
+        
         <div class="w-80 bg-white shadow-lg p-4 overflow-y-auto">
             <h1 class="text-2xl font-bold mb-6">Airtag Manager</h1>
 
-            <!-- Liste der Airtags -->
+           
             <div id="airtagList" class="space-y-2"></div>
         </div>
 
-        <!-- Hauptbereich mit Karte -->
+       
         <div class="flex-1 relative">
             <div id="map" class="h-full w-full"></div>
         </div>
     </div>
 
-    <!-- Modal für Namensänderung -->
+   
     <div id="nameModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
         <div class="bg-white p-6 rounded-lg w-96">
             <h3 class="text-lg font-bold mb-4">Airtag Name ändern</h3>
@@ -43,13 +43,13 @@ let map;
 let markers = {};
 let currentEditingId = null;
 
-// Karte initialisieren
+
 function initMap() {
     map = L.map('map').setView([51.1657, 10.4515], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 }
 
-// Airtag Liste aktualisieren
+
 async function updateAirtagList() {
     const response = await fetch('http://localhost:8000/tags');
     var airtags = await response.json();
@@ -82,13 +82,12 @@ async function updateAirtagList() {
     
 }
 
-// Karten-Marker aktualisieren
+
 function updateMapMarkers(airtags) {
-    // Alte Marker entfernen
     Object.values(markers).forEach(marker => marker.remove());
     markers = {};
 
-    // Neue Marker hinzufügen
+    
     airtags.forEach(tag => {
         if (tag.lat && tag.lon) {
             const marker = L.marker([tag.lon, tag.lat])
@@ -99,35 +98,6 @@ function updateMapMarkers(airtags) {
     });
 }
 
-/*
-// Airtag hinzufügen
-async function addAirtag() {
-    const tagId = document.getElementById('tagId').value;
-    const tagName = document.getElementById('tagName').value;
-
-    console.log("Add Airtag:",tagId, tagName);
-
-    if (!tagId) return;
-
-    try {
-        const response = await fetch('http://localhost:8000/register', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({id: tagId, name: tagName})
-        });
-        console.log(response);
-
-        if (response.ok) {
-            updateAirtagList();
-            document.getElementById('tagId').value = '';
-            document.getElementById('tagName').value = '';
-        }
-    } catch (error) {
-        console.error('Fehler beim Hinzufügen:', error);
-    }
-}
-*/
-// Airtag löschen
 async function deleteAirtag(id) {
     try {
         const response = await fetch(`http://localhost:8000/tags/delete`, {
@@ -144,7 +114,7 @@ async function deleteAirtag(id) {
     }
 }
 
-// Sound abspielen
+
 async function playSound(id) {
     try {
         await fetch(`http://localhost:8000/tone`, {
@@ -191,10 +161,10 @@ async function changeName(currentEditingId) {
     }
 }
 
-// Initialisierung
+
 initMap();
 updateAirtagList();
-setInterval(updateAirtagList, 15000); // Automatische Aktualisierung alle 15 Sekunden
+setInterval(updateAirtagList, 15000); 
     </script>
 </body>
 </html>
