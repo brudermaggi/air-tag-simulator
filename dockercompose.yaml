@@ -1,9 +1,14 @@
+
 services:
+
+  frontend:
+    build: ./frontend/
+    ports:
+      - 7999:80
 
   server:
     build: ./server/
     restart: always
-    #command: ["fastapi", "run", "app/main.py", "--port", "8000"]
     depends_on:
       - mysql
     ports:
@@ -18,17 +23,27 @@ services:
     ports:
       - 3306:3306
 
-  airtag:
-    build: ./airtag/
-    #command: ["fastapi", "run", "app/main.py", "--port", "8001"]
+  airtag0:
+    build: ./airtag0/
     depends_on:
       - server
       - mysql
     ports:
       - 8001:8001
 
-
-  frontend:
-    build: ./frontend/
+  airtag1:
+    build: ./airtag1/
+    depends_on:
+      - server
+      - mysql
     ports:
-      - 7999:80
+      - 8002:8002
+      
+  airtag2:
+    build: ./airtag2/
+    depends_on:
+      - server
+      - mysql
+    ports:
+      - 8003:8003
+
