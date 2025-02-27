@@ -36,6 +36,7 @@ services:
     depends_on:
       - server
       - mysql
+      - airtag0
     ports:
       - 8002:8002
       
@@ -44,6 +45,7 @@ services:
     depends_on:
       - server
       - mysql
+      - airtag1
     ports:
       - 8003:8003
 
