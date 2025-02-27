@@ -48,3 +48,12 @@ Nachdem die Container erfolgreich gestartet wurden, kannst du auf das Frontend d
 http://localhost:7999
 ```
 Dies ist die lokale URL, unter der die Anwendung läuft. Hier kannst du die Benutzeroberfläche des Air-Tag-Simulators nutzen.
+
+
+## "Playing Sound"-Funktion in Docker
+
+Die **"Playing Sound"**-Funktion wird innerhalb einer Docker-Umgebung genutzt, um relevante Logs für die **AirTags** oder den **Server** auszugeben.
+
+Dabei handelt es sich um Protokolleinträge, die spezifisch in den Logs der jeweiligen AirTags und des Servers auftauchen, wenn die **"Playing Sound"**-Funktion aktiviert wird.
+
+Durch das logbasierte Tracking kann jederzeit nachvollzogen werden, wann und auf welchem Gerät die **"Playing Sound"**-Funktion ausgelöst wurde.
