@@ -31,6 +31,7 @@ Navigiere im Terminal in das Root-Verzeichnis deines Projekts.
 
 ```bash
 cd /pfad/zu/deinem/projekt
+```
 
 ## Schritt 4: Docker Compose ausführen
 
@@ -38,10 +39,12 @@ Sobald du dich im Root-Verzeichnis des Projekts befindest, kannst du die Anwendu
 
 ```bash
 docker-compose up
+```
 ### Schritt 5: Frontend aufrufen
 
 Nachdem die Container erfolgreich gestartet wurden, kannst du auf das Frontend der Anwendung zugreifen. Öffne deinen bevorzugten Webbrowser und rufe die folgende URL auf:
 
 ```text
 http://localhost:7999
+```
 Dies ist die lokale URL, unter der die Anwendung läuft. Hier kannst du die Benutzeroberfläche des Air-Tag-Simulators nutzen.
