@@ -36,7 +36,7 @@ jobs:
             echo "----- Bandit Issues Found (if any) -----"
             cat bandit-output.txt
   
-        - name:  Fail if Bandit finds issues
+        - name: ❌ Fail if Bandit finds issues
           run: |
             bandit -r . -x tests -f json -o bandit-result.json -ll
             issues=$(jq '.results | length' bandit-result.json)
@@ -44,9 +44,197 @@ jobs:
               echo "❗ Bandit found $issues issue(s). Failing the build."
               exit 1
             else
-              echo " No issues found by Bandit."
+              echo "✅ No issues found by Bandit."
             fi
-
+  container-security-scan:
+    name: Container Security Scan with Trivy
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check for docker-compose file
+        id: check-compose
+        run: |
+          if [ -f "docker-compose.yml" ] || [ -f "docker-compose.yaml" ]; then
+            echo "Docker Compose file found"
+            echo "exists=true" >> $GITHUB_OUTPUT
+            if [ -f "docker-compose.yml" ]; then
+              echo "file=docker-compose.yml" >> $GITHUB_OUTPUT
+            else
+              echo "file=docker-compose.yaml" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "No docker-compose file found"
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Build all Docker images with docker-compose
+        if: steps.check-compose.outputs.exists == 'true'
+        continue-on-error: true
+        run: |
+          echo "Building all services with docker-compose..."
+          docker-compose -f ${{ steps.check-compose.outputs.file }} build --no-cache 2>&1 | tee docker-compose-build.log
+          
+          echo ""
+          echo "Listing built images..."
+          docker images | grep -E "$(basename $(pwd))|frontend|server|mysql|airtag" || echo "No images found with expected names"
+        id: build-compose
+      
+      - name: Get list of built images
+        if: steps.check-compose.outputs.exists == 'true'
+        id: get-images
+        run: |
+          echo "Extracting image names from docker-compose..."
+          
+          # Get all service names from docker-compose
+          SERVICES=$(docker-compose -f ${{ steps.check-compose.outputs.file }} config --services)
+          
+          echo "Services found:"
+          echo "$SERVICES"
+          
+          # Get the project name (directory name by default)
+          PROJECT_NAME=$(basename $(pwd) | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
+          
+          echo "Project name: $PROJECT_NAME"
+          
+          # Store image list
+          IMAGE_LIST=""
+          for service in $SERVICES; do
+            # Docker Compose creates images with format: projectname_servicename or projectname-servicename
+            IMAGE_NAME="${PROJECT_NAME}_${service}"
+            IMAGE_NAME_ALT="${PROJECT_NAME}-${service}"
+            
+            # Check which format exists
+            if docker images --format "{{.Repository}}" | grep -q "^${IMAGE_NAME}$"; then
+              IMAGE_LIST="${IMAGE_LIST}${IMAGE_NAME},"
+            elif docker images --format "{{.Repository}}" | grep -q "^${IMAGE_NAME_ALT}$"; then
+              IMAGE_LIST="${IMAGE_LIST}${IMAGE_NAME_ALT},"
+            fi
+          done
+          
+          # Remove trailing comma
+          IMAGE_LIST=${IMAGE_LIST%,}
+          
+          if [ -z "$IMAGE_LIST" ]; then
+            echo "No images found"
+            echo "found=false" >> $GITHUB_OUTPUT
+          else
+            echo "Images to scan: $IMAGE_LIST"
+            echo "found=true" >> $GITHUB_OUTPUT
+            echo "images=$IMAGE_LIST" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Scan Docker images with Trivy
+        if: steps.get-images.outputs.found == 'true'
+        run: |
+          COUNTER=1
+          TOTAL_CRITICAL=0
+          
+          IFS=',' read -ra IMAGES <<< "${{ steps.get-images.outputs.images }}"
+          
+          echo "=== Starting Trivy Scans ==="
+          echo ""
+          
+          for image in "${IMAGES[@]}"; do
+            echo "----------------------------------------"
+            echo "Scanning image [$COUNTER]: $image"
+            echo "----------------------------------------"
+            
+            # Scan with table format for display
+            echo "Running Trivy scan..."
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+              aquasec/trivy:latest image --format table --severity CRITICAL,HIGH,MEDIUM "$image" | tee "trivy-results-${COUNTER}-${image##*/}.txt"
+            
+            # Scan with SARIF format for artifacts
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+              -v "$(pwd)":/output \
+              aquasec/trivy:latest image --format sarif --severity CRITICAL,HIGH,MEDIUM \
+              --output "/output/trivy-results-${COUNTER}-${image##*/}.sarif" "$image"
+            
+            # Count critical vulnerabilities
+            if [ -f "trivy-results-${COUNTER}-${image##*/}.sarif" ]; then
+              CRITICAL_COUNT=$(jq '[.runs[].results[] | select(.level=="error")] | length' "trivy-results-${COUNTER}-${image##*/}.sarif" 2>/dev/null || echo "0")
+              echo "Critical/High vulnerabilities found: $CRITICAL_COUNT"
+              TOTAL_CRITICAL=$((TOTAL_CRITICAL + CRITICAL_COUNT))
+            fi
+            
+            COUNTER=$((COUNTER + 1))
+            echo ""
+          done
+          
+          echo "========================================"
+          echo "Scan Summary:"
+          echo "  Total images scanned: ${#IMAGES[@]}"
+          echo "  Total Critical/High vulnerabilities: $TOTAL_CRITICAL"
+          echo "========================================"
+          
+          # Store for later use
+          echo "total_critical=$TOTAL_CRITICAL" >> $GITHUB_OUTPUT
+          echo "images_scanned=${#IMAGES[@]}" >> $GITHUB_OUTPUT
+        id: trivy-scan
+      
+      - name: Display all Trivy results
+        if: steps.get-images.outputs.found == 'true'
+        run: |
+          echo "# Container Security Scan Results"
+          echo ""
+          for result in trivy-results-*.txt; do
+            if [ -f "$result" ]; then
+              echo "=== Results from $result ==="
+              cat "$result"
+              echo ""
+            fi
+          done
+      
+      - name: Upload Docker Compose build log
+        uses: actions/upload-artifact@v4
+        if: always() && steps.check-compose.outputs.exists == 'true'
+        with:
+          name: docker-compose-build-log
+          path: docker-compose-build.log
+          retention-days: 30
+      
+      - name: Upload Trivy scan results
+        uses: actions/upload-artifact@v4
+        if: always() && steps.get-images.outputs.found == 'true'
+        with:
+          name: trivy-scan-results
+          path: |
+            trivy-results-*.sarif
+            trivy-results-*.txt
+          retention-days: 30
+      
+      - name: Check for critical vulnerabilities
+        if: steps.get-images.outputs.found == 'true'
+        run: |
+          TOTAL_CRITICAL=${{ steps.trivy-scan.outputs.total_critical }}
+          IMAGES_SCANNED=${{ steps.trivy-scan.outputs.images_scanned }}
+          
+          echo "Final Summary:"
+          echo "  Images scanned: $IMAGES_SCANNED"
+          echo "  Total Critical/High vulnerabilities: $TOTAL_CRITICAL"
+          
+          if [ "$TOTAL_CRITICAL" -gt 0 ]; then
+            echo "::warning::Found $TOTAL_CRITICAL critical/high vulnerabilities across $IMAGES_SCANNED container images"
+          else
+            echo "✅ No critical or high vulnerabilities found!"
+          fi
+          
+          if [ "$IMAGES_SCANNED" -eq 0 ]; then
+            echo "::warning::No images were successfully scanned. Check build logs for errors."
+          fi
+      
+      - name: Cleanup
+        if: always()
+        run: |
+          echo "Cleaning up Docker resources..."
+          docker-compose -f ${{ steps.check-compose.outputs.file }} down -v --remove-orphans || true
+          docker system prune -f || true
   
   dependency-check:
     runs-on: ubuntu-latest
@@ -57,14 +245,16 @@ jobs:
         id: check-requirements
         run: |
           echo "Searching for requirements.txt files in the repository..."
-          REQUIREMENTS_FILES=$(find . -type f -name "requirements.txt" | tr '\n' ' ')
+          REQUIREMENTS_FILES=$(find . -type f -name "requirements.txt")
           if [ -z "$REQUIREMENTS_FILES" ]; then
             echo "No requirements.txt files found in the repository"
             echo "exists=false" >> $GITHUB_OUTPUT
           else
-            echo "Found requirements.txt files: $REQUIREMENTS_FILES"
+            echo "Found requirements.txt files:"
+            echo "$REQUIREMENTS_FILES"
             echo "exists=true" >> $GITHUB_OUTPUT
-            echo "files=$REQUIREMENTS_FILES" >> $GITHUB_OUTPUT
+            COUNT=$(echo "$REQUIREMENTS_FILES" | wc -l)
+            echo "count=$COUNT" >> $GITHUB_OUTPUT
           fi
       
       - name: Setup Python
@@ -75,12 +265,20 @@ jobs:
       
       - name: Install Python dependencies from all requirements.txt
         if: steps.check-requirements.outputs.exists == 'true'
+        continue-on-error: true
         run: |
           python -m pip install --upgrade pip
-          for req_file in $(find . -type f -name "requirements.txt"); do
-            echo "Installing dependencies from: $req_file"
-            pip install -r "$req_file" || echo "Warning: Failed to install some dependencies from $req_file"
-          done
+          echo "Installing dependencies from all requirements.txt files..."
+          while IFS= read -r req_file; do
+            echo "----------------------------------------"
+            echo "Processing: $req_file"
+            if pip install -r "$req_file"; then
+              echo "✅ Successfully installed dependencies from $req_file"
+            else
+              echo "⚠️  Warning: Failed to install some dependencies from $req_file"
+            fi
+            echo ""
+          done < <(find . -type f -name "requirements.txt")
       
       - name: Run OWASP Dependency-Check (Action)
         if: steps.check-requirements.outputs.exists == 'true'
@@ -98,3 +296,14 @@ jobs:
           name: dependency-check-reports
           path: reports/
           retention-days: 30
+      
+      - name: Display Dependency Check Summary
+        if: steps.check-requirements.outputs.exists == 'true'
+        run: |
+          echo "# Dependency Check Summary"
+          if [ -f "reports/dependency-check-report.json" ]; then
+            echo "Report generated successfully"
+            echo "Check the uploaded artifacts for detailed results"
+          else
+            echo "⚠️  Report may not have been generated"
+          fi
