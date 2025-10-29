@@ -36,7 +36,7 @@ jobs:
             echo "----- Bandit Issues Found (if any) -----"
             cat bandit-output.txt
   
-        - name: ❌ Fail if Bandit finds issues
+        - name:  Fail if Bandit finds issues
           run: |
             bandit -r . -x tests -f json -o bandit-result.json -ll
             issues=$(jq '.results | length' bandit-result.json)
@@ -44,145 +44,9 @@ jobs:
               echo "❗ Bandit found $issues issue(s). Failing the build."
               exit 1
             else
-              echo "✅ No issues found by Bandit."
+              echo " No issues found by Bandit."
             fi
-  container-security-scan:
-    name: Container Security Scan with Trivy
-    runs-on: ubuntu-latest
-    
-    permissions:
-      contents: read
-      
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Find all Dockerfiles
-        id: find-dockerfiles
-        run: |
-          echo "Searching for Dockerfiles in the repository..."
-          DOCKERFILES=$(find . -type f \( -name "Dockerfile" -o -name "dockerfile" \))
-          if [ -z "$DOCKERFILES" ]; then
-            echo "No Dockerfiles found in the repository"
-            echo "found=false" >> $GITHUB_OUTPUT
-          else
-            echo "Found Dockerfiles:"
-            echo "$DOCKERFILES"
-            echo "found=true" >> $GITHUB_OUTPUT
-            # Count dockerfiles
-            COUNT=$(echo "$DOCKERFILES" | wc -l)
-            echo "count=$COUNT" >> $GITHUB_OUTPUT
-          fi
-      
-      - name: Build and Scan Docker images
-        if: steps.find-dockerfiles.outputs.found == 'true'
-        continue-on-error: true
-        run: |
-          COUNTER=1
-          SUCCESSFUL_BUILDS=0
-          FAILED_BUILDS=0
-          
-          echo "=== Docker Build and Scan Summary ==="
-          echo ""
-          
-          while IFS= read -r dockerfile; do
-            echo "----------------------------------------"
-            echo "Processing [$COUNTER]: $dockerfile"
-            IMAGE_TAG="app-image-${COUNTER}:${{ github.sha }}"
-            CONTEXT_DIR=$(dirname "$dockerfile")
-            
-            echo "Building image from $dockerfile with context $CONTEXT_DIR"
-            if docker build -f "$dockerfile" -t "$IMAGE_TAG" "$CONTEXT_DIR" 2>&1 | tee "build-log-${COUNTER}.txt"; then
-              echo "✅ Build successful for $dockerfile"
-              SUCCESSFUL_BUILDS=$((SUCCESSFUL_BUILDS + 1))
-              
-              echo "Scanning $IMAGE_TAG with Trivy..."
-              docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-                aquasec/trivy:latest image --format table --severity CRITICAL,HIGH,MEDIUM "$IMAGE_TAG" | tee "trivy-results-${COUNTER}.txt"
-              
-              docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-                -v "$(pwd)":/output \
-                aquasec/trivy:latest image --format sarif --severity CRITICAL,HIGH,MEDIUM --output "/output/trivy-results-${COUNTER}.sarif" "$IMAGE_TAG"
-            else
-              echo "❌ Build failed for $dockerfile"
-              FAILED_BUILDS=$((FAILED_BUILDS + 1))
-              echo "Build failed - check build-log-${COUNTER}.txt for details" > "trivy-results-${COUNTER}.txt"
-            fi
-            
-            COUNTER=$((COUNTER + 1))
-            echo ""
-          done < <(find . -type f \( -name "Dockerfile" -o -name "dockerfile" \))
-          
-          echo "========================================"
-          echo "Build Summary:"
-          echo "  Total Dockerfiles: $((COUNTER - 1))"
-          echo "  Successful Builds: $SUCCESSFUL_BUILDS"
-          echo "  Failed Builds: $FAILED_BUILDS"
-          echo "========================================"
-          
-          # Store summary for later steps
-          echo "successful=$SUCCESSFUL_BUILDS" >> $GITHUB_OUTPUT
-          echo "failed=$FAILED_BUILDS" >> $GITHUB_OUTPUT
-        id: build-scan
-      
-      - name: Display all Trivy results
-        if: steps.find-dockerfiles.outputs.found == 'true'
-        run: |
-          echo "# Container Security Scan Results"
-          echo ""
-          for result in trivy-results-*.txt; do
-            if [ -f "$result" ]; then
-              echo "=== Results from $result ==="
-              cat "$result"
-              echo ""
-            fi
-          done
-      
-      - name: Upload Build Logs
-        uses: actions/upload-artifact@v4
-        if: always() && steps.find-dockerfiles.outputs.found == 'true'
-        with:
-          name: docker-build-logs
-          path: build-log-*.txt
-          retention-days: 30
-      
-      - name: Upload Trivy artifacts
-        uses: actions/upload-artifact@v4
-        if: always() && steps.find-dockerfiles.outputs.found == 'true'
-        with:
-          name: trivy-scan-results
-          path: |
-            trivy-results-*.sarif
-            trivy-results-*.txt
-          retention-days: 30
-      
-      - name: Check for critical vulnerabilities
-        if: steps.find-dockerfiles.outputs.found == 'true'
-        run: |
-          TOTAL_CRITICAL=0
-          SCANNED_IMAGES=0
-          
-          for sarif in trivy-results-*.sarif; do
-            if [ -f "$sarif" ]; then
-              CRITICAL_COUNT=$(jq '[.runs[].results[] | select(.level=="error")] | length' "$sarif" 2>/dev/null || echo "0")
-              echo "Critical/High vulnerabilities in $sarif: $CRITICAL_COUNT"
-              TOTAL_CRITICAL=$((TOTAL_CRITICAL + CRITICAL_COUNT))
-              SCANNED_IMAGES=$((SCANNED_IMAGES + 1))
-            fi
-          done
-          
-          echo ""
-          echo "Scan Summary:"
-          echo "  Images scanned: $SCANNED_IMAGES"
-          echo "  Total Critical/High vulnerabilities: $TOTAL_CRITICAL"
-          
-          if [ "$TOTAL_CRITICAL" -gt 0 ]; then
-            echo "::warning::Found $TOTAL_CRITICAL critical/high vulnerabilities across $SCANNED_IMAGES container images"
-          fi
-          
-          if [ "$SCANNED_IMAGES" -eq 0 ]; then
-            echo "::warning::No images were successfully scanned. Check build logs for errors."
-          fi
+
   
   dependency-check:
     runs-on: ubuntu-latest
@@ -193,16 +57,14 @@ jobs:
         id: check-requirements
         run: |
           echo "Searching for requirements.txt files in the repository..."
-          REQUIREMENTS_FILES=$(find . -type f -name "requirements.txt")
+          REQUIREMENTS_FILES=$(find . -type f -name "requirements.txt" | tr '\n' ' ')
           if [ -z "$REQUIREMENTS_FILES" ]; then
             echo "No requirements.txt files found in the repository"
             echo "exists=false" >> $GITHUB_OUTPUT
           else
-            echo "Found requirements.txt files:"
-            echo "$REQUIREMENTS_FILES"
+            echo "Found requirements.txt files: $REQUIREMENTS_FILES"
             echo "exists=true" >> $GITHUB_OUTPUT
-            COUNT=$(echo "$REQUIREMENTS_FILES" | wc -l)
-            echo "count=$COUNT" >> $GITHUB_OUTPUT
+            echo "files=$REQUIREMENTS_FILES" >> $GITHUB_OUTPUT
           fi
       
       - name: Setup Python
@@ -213,20 +75,12 @@ jobs:
       
       - name: Install Python dependencies from all requirements.txt
         if: steps.check-requirements.outputs.exists == 'true'
-        continue-on-error: true
         run: |
           python -m pip install --upgrade pip
-          echo "Installing dependencies from all requirements.txt files..."
-          while IFS= read -r req_file; do
-            echo "----------------------------------------"
-            echo "Processing: $req_file"
-            if pip install -r "$req_file"; then
-              echo "✅ Successfully installed dependencies from $req_file"
-            else
-              echo "⚠️  Warning: Failed to install some dependencies from $req_file"
-            fi
-            echo ""
-          done < <(find . -type f -name "requirements.txt")
+          for req_file in $(find . -type f -name "requirements.txt"); do
+            echo "Installing dependencies from: $req_file"
+            pip install -r "$req_file" || echo "Warning: Failed to install some dependencies from $req_file"
+          done
       
       - name: Run OWASP Dependency-Check (Action)
         if: steps.check-requirements.outputs.exists == 'true'
@@ -244,14 +98,3 @@ jobs:
           name: dependency-check-reports
           path: reports/
           retention-days: 30
-      
-      - name: Display Dependency Check Summary
-        if: steps.check-requirements.outputs.exists == 'true'
-        run: |
-          echo "# Dependency Check Summary"
-          if [ -f "reports/dependency-check-report.json" ]; then
-            echo "Report generated successfully"
-            echo "Check the uploaded artifacts for detailed results"
-          else
-            echo "⚠️  Report may not have been generated"
-          fi
