@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airtag Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        
+        <div class="w-80 bg-white shadow-lg p-4 overflow-y-auto">
+            <h1 class="text-2xl font-bold mb-6">Airtag Manager</h1>
+
+           
+            <div id="airtagList" class="space-y-2"></div>
+        </div>
+
+       
+        <div class="flex-1 relative">
+            <div id="map" class="h-full w-full"></div>
+        </div>
+    </div>
+
+   
+    <div id="nameModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg w-96">
+            <h3 class="text-lg font-bold mb-4">Airtag Name ändern</h3>
+            <input type="text" id="tagModalName" class="w-full p-2 border rounded mb-4">
+            <div class="flex justify-end space-x-2">
+                <button onclick="closeNameModal()" class="px-4 py-2 text-gray-500 hover:text-gray-700">Abbrechen</button>
+                <button onclick="changeName(currentEditingId)" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        
+let map;
+let markers = {};
+let currentEditingId = null;
+
+
+function initMap() {
+    map = L.map('map').setView([51.1657, 10.4515], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+}
+
+
+async function updateAirtagList() {
+    const response = await fetch('http://localhost:8000/tags');
+    var airtags = await response.json();
+    airtags = JSON.parse(airtags)
+    const listContainer = document.getElementById('airtagList');
+    listContainer.innerHTML = '';
+
+    airtags.forEach(tag => {
+        const element = document.createElement('div');
+        element.className = 'bg-gray-50 p-3 rounded-lg shadow-sm';
+        element.innerHTML = `
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="font-semibold">Name: ${tag.name}</h3>
+                    <p class="text-sm text-gray-500">ID: ${tag.id}</p>
+                    <p class="text-sm text-gray-500">Lon: ${tag.lon}</p>
+                    <p class="text-sm text-gray-500">Lat: ${tag.lat}</p>
+                </div>
+                <div class="space-x-2">
+                    <button onclick="playSound(${tag.id})" class="text-blue-500 hover:text-blue-700"> 🎶</button>
+                    <button onclick="showNameModal(${tag.id})" class="text-blue-500 hover:text-blue-700">✏️</button>
+                    <button onclick="deleteAirtag(${tag.id})" class="text-red-500 hover:text-red-700">🗑️</button>
+                </div>
+            </div>
+        `;
+        listContainer.appendChild(element);
+    });
+
+    updateMapMarkers(airtags);
+    
+}
+
+
+function updateMapMarkers(airtags) {
+    Object.values(markers).forEach(marker => marker.remove());
+    markers = {};
+
+    
+    airtags.forEach(tag => {
+        if (tag.lat && tag.lon) {
+            const marker = L.marker([tag.lon, tag.lat])
+                .addTo(map)
+                .bindPopup(`<b>${tag.name || `Airtag ${tag.id}`}</b><br>ID: ${tag.id}`);
+            markers[tag.id] = marker;
+        }
+    });
+}
+
+async function deleteAirtag(id) {
+    try {
+        const response = await fetch(`http://localhost:8000/tags/delete`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id})
+        });
+        
+        if (response.ok) {
+            updateAirtagList();
+        }
+    } catch (error) {
+        console.error('Fehler beim Löschen:', error);
+    }
+}
+
+
+async function playSound(id) {
+    try {
+        await fetch(`http://localhost:8000/tone`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id})
+        });
+    } catch (error) {
+        console.error('Fehler beim Ton abspielen:', error);
+    }
+}
+
+// Namensänderungs-Modal
+function showNameModal(id) {
+    currentEditingId = id;
+    document.getElementById('nameModal').classList.remove('hidden');
+    var MapElement = document.getElementById('map')
+    MapElement.style.opacity = "0"
+}
+
+function closeNameModal() {
+    document.getElementById('nameModal').classList.add('hidden');
+    var MapElement = document.getElementById('map')
+    MapElement.style.opacity = "1"
+    currentEditingId = null;
+}
+
+async function changeName(currentEditingId) {
+    var airtagname = document.getElementById("tagModalName").value;
+
+    try {
+        const response = await fetch(`http://localhost:8000/tags/changeName`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id: currentEditingId, name: airtagname})
+        });
+
+        if (response.ok) {
+            updateAirtagList();
+            closeNameModal();
+        }
+    } catch (error) {
+        console.error('Fehler beim Speichern:', error);
+    }
+}
+
+
+initMap();
+updateAirtagList();
+setInterval(updateAirtagList, 15000); 
+    </script>
+</body>
+</html>
