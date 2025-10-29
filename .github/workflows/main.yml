@@ -73,12 +73,12 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
       
-      - name: Build all Docker images with docker-compose
+      - name: Build all Docker images with docker compose
         if: steps.check-compose.outputs.exists == 'true'
         continue-on-error: true
         run: |
-          echo "Building all services with docker-compose..."
-          docker-compose -f ${{ steps.check-compose.outputs.file }} build --no-cache 2>&1 | tee docker-compose-build.log
+          echo "Building all services with docker compose..."
+          docker compose -f ${{ steps.check-compose.outputs.file }} build --no-cache 2>&1 | tee docker-compose-build.log
           
           echo ""
           echo "Listing built images..."
@@ -89,10 +89,10 @@ jobs:
         if: steps.check-compose.outputs.exists == 'true'
         id: get-images
         run: |
-          echo "Extracting image names from docker-compose..."
+          echo "Extracting image names from docker compose..."
           
-          # Get all service names from docker-compose
-          SERVICES=$(docker-compose -f ${{ steps.check-compose.outputs.file }} config --services)
+          # Get all service names from docker compose
+          SERVICES=$(docker compose -f ${{ steps.check-compose.outputs.file }} config --services)
           
           echo "Services found:"
           echo "$SERVICES"
@@ -105,15 +105,29 @@ jobs:
           # Store image list
           IMAGE_LIST=""
           for service in $SERVICES; do
-            # Docker Compose creates images with format: projectname_servicename or projectname-servicename
-            IMAGE_NAME="${PROJECT_NAME}_${service}"
-            IMAGE_NAME_ALT="${PROJECT_NAME}-${service}"
+            # Docker Compose creates images with format: projectname-servicename (v2) or projectname_servicename (v1)
+            IMAGE_NAME="${PROJECT_NAME}-${service}"
+            IMAGE_NAME_ALT="${PROJECT_NAME}_${service}"
+            
+            echo "Looking for image: $IMAGE_NAME or $IMAGE_NAME_ALT"
             
             # Check which format exists
             if docker images --format "{{.Repository}}" | grep -q "^${IMAGE_NAME}$"; then
               IMAGE_LIST="${IMAGE_LIST}${IMAGE_NAME},"
+              echo "  Found: $IMAGE_NAME"
             elif docker images --format "{{.Repository}}" | grep -q "^${IMAGE_NAME_ALT}$"; then
               IMAGE_LIST="${IMAGE_LIST}${IMAGE_NAME_ALT},"
+              echo "  Found: $IMAGE_NAME_ALT"
+            else
+              echo "  Not found, checking with latest tag..."
+              # Sometimes the full image name includes a tag
+              if docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "${IMAGE_NAME}:latest"; then
+                IMAGE_LIST="${IMAGE_LIST}${IMAGE_NAME},"
+                echo "  Found: ${IMAGE_NAME}:latest"
+              elif docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "${IMAGE_NAME_ALT}:latest"; then
+                IMAGE_LIST="${IMAGE_LIST}${IMAGE_NAME_ALT},"
+                echo "  Found: ${IMAGE_NAME_ALT}:latest"
+              fi
             fi
           done
           
@@ -121,7 +135,8 @@ jobs:
           IMAGE_LIST=${IMAGE_LIST%,}
           
           if [ -z "$IMAGE_LIST" ]; then
-            echo "No images found"
+            echo "No images found, listing all docker images for debugging:"
+            docker images
             echo "found=false" >> $GITHUB_OUTPUT
           else
             echo "Images to scan: $IMAGE_LIST"
@@ -145,20 +160,23 @@ jobs:
             echo "Scanning image [$COUNTER]: $image"
             echo "----------------------------------------"
             
+            # Create a safe filename from the image name
+            SAFE_NAME=$(echo "$image" | sed 's/[^a-zA-Z0-9]/-/g')
+            
             # Scan with table format for display
             echo "Running Trivy scan..."
             docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-              aquasec/trivy:latest image --format table --severity CRITICAL,HIGH,MEDIUM "$image" | tee "trivy-results-${COUNTER}-${image##*/}.txt"
+              aquasec/trivy:latest image --format table --severity CRITICAL,HIGH,MEDIUM "$image" | tee "trivy-results-${COUNTER}-${SAFE_NAME}.txt"
             
             # Scan with SARIF format for artifacts
             docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
               -v "$(pwd)":/output \
               aquasec/trivy:latest image --format sarif --severity CRITICAL,HIGH,MEDIUM \
-              --output "/output/trivy-results-${COUNTER}-${image##*/}.sarif" "$image"
+              --output "/output/trivy-results-${COUNTER}-${SAFE_NAME}.sarif" "$image"
             
             # Count critical vulnerabilities
-            if [ -f "trivy-results-${COUNTER}-${image##*/}.sarif" ]; then
-              CRITICAL_COUNT=$(jq '[.runs[].results[] | select(.level=="error")] | length' "trivy-results-${COUNTER}-${image##*/}.sarif" 2>/dev/null || echo "0")
+            if [ -f "trivy-results-${COUNTER}-${SAFE_NAME}.sarif" ]; then
+              CRITICAL_COUNT=$(jq '[.runs[].results[] | select(.level=="error")] | length' "trivy-results-${COUNTER}-${SAFE_NAME}.sarif" 2>/dev/null || echo "0")
               echo "Critical/High vulnerabilities found: $CRITICAL_COUNT"
               TOTAL_CRITICAL=$((TOTAL_CRITICAL + CRITICAL_COUNT))
             fi
@@ -233,7 +251,7 @@ jobs:
         if: always()
         run: |
           echo "Cleaning up Docker resources..."
-          docker-compose -f ${{ steps.check-compose.outputs.file }} down -v --remove-orphans || true
+          docker compose -f ${{ steps.check-compose.outputs.file }} down -v --remove-orphans || true
           docker system prune -f || true
   
   dependency-check:
